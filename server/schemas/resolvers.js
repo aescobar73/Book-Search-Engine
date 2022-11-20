@@ -27,7 +27,7 @@ const resolvers = {
                 throw new AuthenticationError('Unable to login');
             }
 
-            const token = sign(user);
+            const token = signToken(user);
             return { token, user};
             },
 
@@ -38,13 +38,17 @@ const resolvers = {
             return { token, user };
         },
 
-        saveBook: async (parent, args) => {
-            const updatedUser = await User.findOneAndUpdate(
-                {_id: args.username},
-                {$addToSet: { savedBooks: args.bookId} })
-
-            return updatedUser;
-        },
+        saveBook: async (parent, { input }, context) => {
+            if (context.user) {
+              const updatedUser = await User.findOneAndUpdate(
+                { _id: context.user._id },
+                { $addToSet: { savedBooks: input } },
+                { new: true, runValidators: true }
+              );
+              return updatedUser;
+            }
+            throw new AuthenticationError("You need to log in");
+          },
 
         removeBook: async (parent, {bookId}, context) => {
             if(context.user) {
